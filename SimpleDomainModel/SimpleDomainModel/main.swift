@@ -20,12 +20,6 @@ open class TestMe {
   }
 }
 
-let acceptedCurrencies = ["USD", "GBP", "EUR", "CAN"]
-
-public func isAcceptedCurrency(_ currency: String) -> Bool {
-  return acceptedCurrencies.contains(currency)
-}
-
 ////////////////////////////////////
 // Money
 //
@@ -34,18 +28,18 @@ public struct Money {
   public var currency : String
   
   public func convert(_ to: String) -> Money {
-    if isAcceptedCurrency(to){
       switch (to) {
       case "GBP":
         return Money(amount: Int(convertToGBP(currency)), currency: to)
       case "EUR":
         return Money(amount: Int(convertToEUR(currency)), currency: to)
+      case "USD":
+        return Money(amount: Int(convertToUSD(currency)), currency: to)
+      case "CAN":
+        return Money(amount: Int(convertToCAN(currency)), currency: to)
       default:
         return self
       }
-    }
-    
-    return self
   }
   
   private func convertToGBP(_ from : String) -> Double {
@@ -88,9 +82,9 @@ public struct Money {
   private func convertToUSD(_ from : String) -> Double {
     switch(from) {
     case "CAN":
-      return Double(amount) * 0.75
+      return Double(amount) * 0.8
     case "EUR":
-      return Double(amount) / 3
+      return Double(amount) * (2 / 3)
     case "GBP":
       return Double(amount) * 2
     default:
@@ -103,7 +97,7 @@ public struct Money {
       return Money(amount: self.amount + to.amount, currency: currency)
     } else {
       let _to = to.convert(currency)
-      return Money(amount: self.amount + _to.amount, currency: currency)
+      return Money(amount: self.amount + _to.amount, currency: currency).convert(to.currency)
     }
   }
   public func subtract(_ from: Money) -> Money {
@@ -136,7 +130,7 @@ open class Job {
   open func calculateIncome(_ hours: Int) -> Int {
     switch(type) {
     case (.Hourly(let hourly)):
-      return Int(hourly * Double(2000))
+      return Int(hourly * Double(hours))
     case (.Salary(let salary)):
       return Int(salary)
     }
@@ -166,6 +160,9 @@ open class Person {
       return _job
     }
     set(value) {
+      if(age > 15) {
+        _job = value
+      }
     }
   }
   
@@ -173,6 +170,9 @@ open class Person {
   open var spouse : Person? {
     get { return _spouse }
     set(value) {
+      if(age > 15) {
+        _spouse = value
+      }
     }
   }
   
@@ -183,7 +183,19 @@ open class Person {
   }
   
   open func toString() -> String {
-    return "[Person: firstName: \(self.firstName) lastName: \(self.lastName) age: \(self.age) job: \(self.job!) spouse: \(self.spouse!) ]"
+    var response = "[Person: firstName:\(self.firstName) lastName:\(self.lastName) age:\(self.age)"
+    if let job = self.job?.title {
+      response.append(" job:\(job)")
+    } else {
+      response.append(" job:nil")
+    }
+    if let spouse = self.spouse?.firstName {
+      response.append(" spouse:\(spouse)")
+    } else {
+      response.append(" spouse:nil")
+    }
+    response.append("]")
+    return response;
   }
 }
 
@@ -198,12 +210,13 @@ open class Family {
     weak var _spouse2 = spouse2
     if(spouse1.spouse == nil) {
       spouse1.spouse = _spouse2
-      members.append(spouse1)
     }
     if(spouse1.spouse == nil) {
       spouse2.spouse = _spouse1
-      members.append(spouse2)
     }
+    members.append(spouse1)
+    members.append(spouse2)
+    print("(Family) Members: \(members)")
   }
   
   open func haveChild(_ child: Person) -> Bool {
@@ -217,12 +230,14 @@ open class Family {
   }
   
   open func householdIncome() -> Int {
+    print("Checking household income...")
     var total = 0
-    for person in self.members {
-      if person.job != nil {
-        total += person.job!.calculateIncome(2000)
+    for person in members {
+      if let income = person.job?.calculateIncome(2000) {
+        total += income
       }
     }
+    print("(householdIncome) Returning \(total)")
     return total
   }
 }
